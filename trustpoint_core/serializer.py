@@ -8,7 +8,7 @@ import typing
 from cryptography import exceptions as crypto_exceptions
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, mldsa, rsa
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, pkcs7, pkcs12
 
 from trustpoint_core.crypto_types import PrivateKey, PublicKey
@@ -110,6 +110,10 @@ class PrivateKeyReference:
             self.key_type = ec.EllipticCurvePrivateKey
             self.key_curve = NamedCurve.from_curve(type(private_key.curve))
             self.key_size = None
+        elif isinstance(private_key, (mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey)):
+            self.key_type = type(private_key)
+            self.key_size = None
+            self.key_curve = None
         else:
             msg = f'Unsupported private key type: {type(private_key)}'
             raise TypeError(msg)

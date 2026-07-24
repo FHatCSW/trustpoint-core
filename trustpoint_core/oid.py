@@ -1046,7 +1046,7 @@ class PublicKeyInfo:
     _key_size: None | int = None
     _named_curve: None | NamedCurve = None
 
-    def __init__(
+    def __init__(  # noqa: C901
         self,
         public_key_algorithm_oid: PublicKeyAlgorithmOid,
         key_size: None | int = None,
@@ -1452,7 +1452,7 @@ class KeyPairGenerator:
         return cls.generate_key_pair_for_public_key(public_key)
 
     @staticmethod
-    def generate_key_pair_for_public_key_info(
+    def generate_key_pair_for_public_key_info(  # noqa: C901
         public_key_info: PublicKeyInfo,
     ) -> PrivateKey:
         """Generates a new key-pair of the type given by the PublicKeyInfo object.

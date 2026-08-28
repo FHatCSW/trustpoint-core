@@ -1083,11 +1083,18 @@ class PublicKeyInfo:
             PublicKeyAlgorithmOid.ML_DSA_87,
         ):
             if self._public_key_algorithm_oid == PublicKeyAlgorithmOid.ML_DSA_44:
-                self._key_size = ML_DSA_44_PUBLIC_KEY_SIZE
+                expected_key_size = ML_DSA_44_PUBLIC_KEY_SIZE
             elif self._public_key_algorithm_oid == PublicKeyAlgorithmOid.ML_DSA_65:
-                self._key_size = ML_DSA_65_PUBLIC_KEY_SIZE
+                expected_key_size = ML_DSA_65_PUBLIC_KEY_SIZE
             elif self._public_key_algorithm_oid == PublicKeyAlgorithmOid.ML_DSA_87:
-                self._key_size = ML_DSA_87_PUBLIC_KEY_SIZE
+                expected_key_size = ML_DSA_87_PUBLIC_KEY_SIZE
+            if key_size is not None and key_size != expected_key_size:
+                err_msg = (
+                    f'{self._public_key_algorithm_oid.verbose_name} public key size must be '
+                    f'{expected_key_size} bytes, but found {key_size} bytes.'
+                )
+                raise ValueError(err_msg)
+            self._key_size = expected_key_size
             if named_curve is not None:
                 err_msg = 'ML-DSA keys cannot have a named curve associated with it.'
                 raise ValueError(err_msg)

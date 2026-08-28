@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
@@ -45,7 +45,7 @@ jobs:
             uv tool run pip-licenses | grep -iE "GPL-[0-9]|GPLv[0-9]" | grep -v "LGPL"
             exit 1
           fi
-          
+
           # Check for proprietary licenses
           if uv tool run pip-licenses | grep -iE "Proprietary|Commercial"; then
             echo "::error::Found proprietary/commercial licenses that need review"
@@ -53,7 +53,7 @@ jobs:
             uv tool run pip-licenses | grep -iE "Proprietary|Commercial"
             exit 1
           fi
-          
+
           echo "✅ No incompatible licenses detected"
 
       - name: Comment license report on PR
@@ -68,15 +68,15 @@ jobs:
             } catch (e) {
               report = '⚠️ License report generation failed';
             }
-            
+
             const comment = `## 📋 License Check Report
-            
+
             ${report}
-            
+
             ---
             **Note:** This project is MIT-licensed. LGPL and most permissive licenses are compatible. GPL and proprietary licenses require review.
             `;
-            
+
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

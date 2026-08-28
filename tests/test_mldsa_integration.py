@@ -1,7 +1,10 @@
 """This module contains tests for ML-DSA (Module-Lattice-Based Digital Signature Algorithm) integration."""
 
+from typing import cast
+
 import pytest
 from cryptography.hazmat.primitives.asymmetric import mldsa
+from cryptography.hazmat.primitives.serialization import load_der_private_key, load_pem_private_key
 
 from trustpoint_core.oid import (
     AlgorithmIdentifier,
@@ -12,6 +15,8 @@ from trustpoint_core.oid import (
 from trustpoint_core.serializer import PrivateKeyReference, PrivateKeySerializer
 
 # ruff: noqa: SLF001
+
+MldsaPrivateKey = mldsa.MLDSA44PrivateKey | mldsa.MLDSA65PrivateKey | mldsa.MLDSA87PrivateKey
 
 
 # Fixtures for ML-DSA key generation
@@ -155,6 +160,26 @@ def test_public_key_info_from_mldsa44_private_key(
 
     assert pub_key_info.public_key_algorithm_oid == PublicKeyAlgorithmOid.ML_DSA_44
     assert str(pub_key_info) == 'ML-DSA-44'
+
+
+@pytest.mark.parametrize(
+    ('private_key_type', 'public_key_size'),
+    [
+        (mldsa.MLDSA44PrivateKey, 1312),
+        (mldsa.MLDSA65PrivateKey, 1952),
+        (mldsa.MLDSA87PrivateKey, 2592),
+    ],
+)
+def test_public_key_info_mldsa_key_size_is_fixed(
+    private_key_type: type[mldsa.MLDSA44PrivateKey | mldsa.MLDSA65PrivateKey | mldsa.MLDSA87PrivateKey],
+    public_key_size: int,
+) -> None:
+    """Test that ML-DSA public-key sizes are fixed and validated."""
+    public_key_info = PublicKeyInfo.from_private_key(private_key_type.generate())
+
+    assert public_key_info.key_size == public_key_size
+    with pytest.raises(ValueError, match='public key size'):
+        PublicKeyInfo(public_key_info.public_key_algorithm_oid, key_size=public_key_size + 1)
 
 
 # Tests for KeyPairGenerator with ML-DSA keys
@@ -369,6 +394,47 @@ def test_private_key_serializer_init_mldsa87(
     """
     serializer = PrivateKeySerializer(generate_mldsa87_private_key)
     assert serializer.as_crypto() == generate_mldsa87_private_key
+
+
+@pytest.mark.parametrize(
+    'private_key_type',
+    [mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey],
+)
+def test_mldsa_pkcs8_round_trip_and_signature_verification(
+    private_key_type: type[mldsa.MLDSA44PrivateKey | mldsa.MLDSA65PrivateKey | mldsa.MLDSA87PrivateKey],
+) -> None:
+    """Test PKCS#8 round trips and signatures for each ML-DSA variant."""
+    private_key = private_key_type.generate()
+    serializer = PrivateKeySerializer(private_key)
+
+    loaded_der_key = cast('MldsaPrivateKey', load_der_private_key(serializer.as_pkcs8_der(), password=None))
+    loaded_pem_key = cast('MldsaPrivateKey', load_pem_private_key(serializer.as_pkcs8_pem(), password=None))
+    message = b'trustpoint-core ML-DSA integration test'
+
+    assert type(loaded_der_key) is type(private_key)
+    assert type(loaded_pem_key) is type(private_key)
+    signature = private_key.sign(message)
+    private_key.public_key().verify(signature, message)
+    loaded_der_key.public_key().verify(signature, message)
+    loaded_pem_key.public_key().verify(signature, message)
+
+
+@pytest.mark.parametrize(
+    'private_key_type',
+    [mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey],
+)
+def test_mldsa_unsupported_private_key_formats(
+    private_key_type: type[mldsa.MLDSA44PrivateKey | mldsa.MLDSA65PrivateKey | mldsa.MLDSA87PrivateKey],
+) -> None:
+    """Test that unsupported legacy private-key formats fail clearly."""
+    serializer = PrivateKeySerializer(private_key_type.generate())
+
+    with pytest.raises(TypeError, match='not supported for ML-DSA'):
+        serializer.as_pkcs1_der()
+    with pytest.raises(TypeError, match='not supported for ML-DSA'):
+        serializer.as_pkcs1_pem()
+    with pytest.raises(TypeError, match='not supported for ML-DSA'):
+        serializer.as_pkcs12()
 
 
 # Integration tests

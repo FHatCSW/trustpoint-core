@@ -638,6 +638,9 @@ class PrivateKeySerializer:
         Returns:
             Bytes object that contains the private key in PKCS#1 DER format.
         """
+        if isinstance(self._private_key, (mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey)):
+            msg = 'PKCS#1 serialization is not supported for ML-DSA private keys.'
+            raise TypeError(msg)
         return self._private_key.private_bytes(
             encoding=Encoding.DER,
             format=PrivateFormat.TraditionalOpenSSL,
@@ -655,6 +658,9 @@ class PrivateKeySerializer:
         Returns:
             Bytes object that contains the private key in PKCS#1 PEM format.
         """
+        if isinstance(self._private_key, (mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey)):
+            msg = 'PKCS#1 serialization is not supported for ML-DSA private keys.'
+            raise TypeError(msg)
         return self._private_key.private_bytes(
             encoding=Encoding.PEM,
             format=PrivateFormat.TraditionalOpenSSL,
@@ -707,10 +713,12 @@ class PrivateKeySerializer:
         Returns:
             Bytes object that contains the private key in a PKCS#12 structure.
         """
-        # Note: PKCS#12 doesn't yet support ML-DSA keys in cryptography library
+        if isinstance(self._private_key, (mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey)):
+            msg = 'PKCS#12 serialization is not supported for ML-DSA private keys.'
+            raise TypeError(msg)
         return pkcs12.serialize_key_and_certificates(
             name=friendly_name,
-            key=self._private_key,  # type: ignore[arg-type]
+            key=self._private_key,
             cert=None,
             cas=None,
             encryption_algorithm=get_encryption_algorithm(password),
@@ -1719,10 +1727,12 @@ class CredentialSerializer:
                 'private key, certificate or certificate collection.'
             )
             raise ValueError(err_msg)
-        # Note: PKCS#12 doesn't yet support ML-DSA keys in cryptography library
+        if isinstance(self.private_key, (mldsa.MLDSA44PrivateKey, mldsa.MLDSA65PrivateKey, mldsa.MLDSA87PrivateKey)):
+            msg = 'PKCS#12 serialization is not supported for ML-DSA private keys.'
+            raise TypeError(msg)
         return pkcs12.serialize_key_and_certificates(
             name=friendly_name,
-            key=self.private_key,  # type: ignore[arg-type]
+            key=self.private_key,
             cert=self.certificate,
             cas=self.additional_certificates,
             encryption_algorithm=get_encryption_algorithm(password),
